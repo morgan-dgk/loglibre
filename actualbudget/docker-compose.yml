@@ -2,6 +2,11 @@ volumes:
   data:
   server:
 
+networks:
+  protected:
+    external: true
+    name: "${NETWORK_ID}"
+
 services:
   actual_server:
     image: loglibre/actualbudget
@@ -11,6 +16,8 @@ services:
     volumes:
       - data:/data
       - server:/server
+    networks:
+      - protected
     environment:
       # Uncomment any of the lines below to set configuration options.
       # See all options and more details at https://actualbudget.github.io/docs/Installing/Configuration
