@@ -9,7 +9,6 @@ networks:
 
 services:
   actual_server:
-    image: loglibre/actualbudget
     build:
       context: .
     ports: []
