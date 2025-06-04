@@ -37,6 +37,7 @@ services:
       PUID: 1000
       PGID: 1000
       TZ: Australia/Sydney
+      BASE_URL: "${MEALIE_BASE_URL:?}"
       OPENAI_API_KEY: /run/secrets/open_api_key
       # Database Settings
       DB_ENGINE: postgres
