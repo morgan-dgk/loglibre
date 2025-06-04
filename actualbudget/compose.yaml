@@ -9,8 +9,7 @@ networks:
 
 services:
   actual_server:
-    build:
-      context: .
+    image: ghcr.io/actualbudget/actual:25.5.0
     ports: []
     volumes:
       - data:/data
