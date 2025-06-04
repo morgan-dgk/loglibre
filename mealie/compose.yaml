@@ -1,0 +1,73 @@
+volumes:
+  mealie-data:
+  mealie-pgdata:
+
+networks:
+  frontend:
+    external: true
+    name: ${EXTERNAL_NETWORK_ID:?}
+  backend:
+    internal: true
+
+secrets:
+  postgres_password:
+    environment: "POSTGRES_PASSWORD"
+  open_api_key:
+    environment: "OPEN_API_KEY"
+
+services:
+
+  mealie:
+
+    image: ghcr.io/mealie-recipes/mealie:v2.7.1
+    container_name: mealie
+    restart: on-failure:3
+    deploy:
+      resources:
+        limits:
+          memory: 1000M
+    volumes:
+      - mealie-data:/app/data/
+    networks:
+      - frontend
+      - backend
+    environment:
+      # Set Backend ENV Variables Here
+      ALLOW_SIGNUP: "false"
+      PUID: 1000
+      PGID: 1000
+      TZ: Australia/Sydney
+      OPENAI_API_KEY: /run/secrets/open_api_key
+      # Database Settings
+      DB_ENGINE: postgres
+      POSTGRES_SERVER: "${POSTGRES_SERVER:-mealie-db}"
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: "${POSTGRES_USER:-mealie}"
+      POSTGRES_DB: "${POSTGRES_DB:-mealie}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    secrets:
+      - postgres_password
+    depends_on:
+      database:
+        condition: service_healthy
+
+  database:
+
+    container_name: mealie-db
+    image: postgres:15
+    restart: on-failure:3
+    volumes:
+      - mealie-pgdata:/var/lib/postgresql/data
+    networks:
+      - backend
+    secrets:
+      - postgres_password
+    environment:
+      POSTGRES_USER: "${POSTGRES_USER:-mealie}"
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: "${POSTGRES_DB:-mealie}"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER:-mealie}", "-d", "${POSTGRES_DB:-mealie}" ]
+      interval: 30s
+      timeout: 20s
+      retries: 3
