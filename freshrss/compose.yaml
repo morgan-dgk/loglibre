@@ -65,8 +65,6 @@ services:
     secrets:
       - postgres_user
       - postgres_password
-    ports:
-      - 80:80
     environment:
       CRON_MIN: "*/20"
       FRESHRSS_ENV: development
