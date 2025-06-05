@@ -91,7 +91,7 @@ services:
         --language en
       FRESHRSS_USER: |-
         --api-password ${ADMIN_API_PASSWORD:?}
-        --email ${ADMIN_EMAIL:-test@test.com}
+        --email ${ADMIN_EMAIL:?}
         --language en
         --password ${ADMIN_PASSWORD:?}
         --user ${FRESH_RSS_ADMIN_USER:-admin}
