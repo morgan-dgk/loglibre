@@ -1,0 +1,104 @@
+volumes:
+  db_data:
+  fresh_rss_data:
+  fresh_rss_extensions:
+  fresh_rss_themes:
+  rss-cache:
+
+networks:
+  frontend:
+    name: "${EXTERNAL_NETWORK_ID:?}"
+    external: true
+  backend:
+    internal: true
+
+secrets:
+  postgres_user:
+    environment: "POSTGRES_USER"
+  postgres_password:
+    environment: "POSTGRES_PASSWORD"
+
+services:
+
+  db:
+
+    image: postgres
+    container_name: freshrss-db
+    restart: on-failure:3
+    environment:
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      POSTGRES_DB: ${POSTGRES_DB:-freshrss}
+    secrets:
+      - postgres_user
+      - postgres_password
+    networks:
+      - backend
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  fullfeedrss:
+
+    image: 'heussd/fivefilters-full-text-rss:latest'
+    container_name: fivefilters
+    environment:
+      # Leave empty to disable admin section
+      - FTR_ADMIN_PASSWORD=
+    networks:
+      - backend
+      - frontend
+    volumes:
+      - 'rss-cache:/var/www/html/cache/rss'
+
+  postlight-parser:
+
+    image: 'wangqiru/mercury-parser-api'
+    container_name: mercury
+    networks:
+      - backend
+
+  freshrss:
+
+    image: freshrss/freshrss:latest
+    container_name: freshrss
+    restart: on-failure:3
+    secrets:
+      - postgres_user
+      - postgres_password
+    ports:
+      - 80:80
+    environment:
+      CRON_MIN: "*/20"
+      FRESHRSS_ENV: development
+      # Uncomment below to enable logging of debug statements
+      # FRESHRSS_ENV: development
+      PUID: 1000
+      PGID: 1000
+      TZ: "${TIMEZONE:?}"
+      POSTGRES_USER_FILE: /run/secrets/postgres_user
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+      FRESHRSS_INSTALL: |-
+        --api-enabled
+        --language en
+        --base-url ${BASE_URL:?}
+        --title ${SITE_TITLE:-FreshRSS}
+        --db-base ${POSTGRS_DB}:-freshrss}
+        --db-host ${DB_HOST:-freshrss-db}
+        --db-password ${POSTGRES_PASSWORD:?}
+        --db-type pgsql
+        --db-user ${POSTGRES_USER:?}
+        --default-user ${FRESH_RSS_ADMIN_USER:-admin}
+        --language en
+      FRESHRSS_USER: |-
+        --api-password ${ADMIN_API_PASSWORD:?}
+        --email ${ADMIN_EMAIL:-test@test.com}
+        --language en
+        --password ${ADMIN_PASSWORD:?}
+        --user ${FRESH_RSS_ADMIN_USER:-admin}
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - fresh_rss_data:/var/www/FreshRSS/data
+      - fresh_rss_extensions:/var/www/FreshRSS/extensions
+      - fresh_rss_themes:/var/www/FreshRSS/p/themes
