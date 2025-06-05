@@ -82,7 +82,7 @@ services:
         --language en
         --base-url ${BASE_URL:?}
         --title ${SITE_TITLE:-FreshRSS}
-        --db-base ${POSTGRS_DB}:-freshrss}
+        --db-base ${POSTGRES_DB}:-freshrss}
         --db-host ${DB_HOST:-freshrss-db}
         --db-password ${POSTGRES_PASSWORD:?}
         --db-type pgsql
