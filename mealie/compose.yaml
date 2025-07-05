@@ -55,7 +55,7 @@ services:
   database:
 
     container_name: mealie-db
-    image: postgres:15
+    image: postgres:17
     restart: on-failure:3
     volumes:
       - mealie-pgdata:/var/lib/postgresql/data
