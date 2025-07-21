@@ -1,0 +1,141 @@
+variant: flatcar
+version: 1.0.0
+
+passwd:
+
+  users:
+    - name: morgan
+      ssh_authorized_keys:
+        - |
+          ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC4Ydo5mw95+AzmINCazRQ7wGLL5FLcerCFfddW3AWiiSb2nBMp5/G+2HqYKkYAvg7xhXUiBwxFzEHdNxMrreLjGI/vnmSANPoGwnWZ7+5usT10dlrPJF+s8I178/13UUxqE/CWw7lkPsQ+jtBYp99sVNbnDNMb/buCH1bB3J141Ci7iDmpXvtheYUmHyXFGRk53FXnkNBmNaFlO2mVLB4NciRE5pskgQBdgaLwUtb7Pckuq08xPBK70cQAy3v6WNklZEuAqeixsqQfCs8N2FWOeDtlMYPpFSSjN+jbOb9Sq34BhOoDga/+YavBa2G6djt+FgZPWuhZPkIelMbgF3uS4f1VaPhbQxO54EtnFVJkwRXWeJ/Lt+ImGswWbapassGAkJ5pwC8L81taQ5UoLgkz9YaARWM6Vn3JNr9pO+B0oQt29r7cz7FxbLiJfP0XW2AbCvCDuQylMqAvvZpV/X1FttPnQg+F17563shzN/9zHx1w4U72Yu9tK9WqfLiCRlFBKSZYeMqSy1eLPKZUr3/Yo2HNyiyXEsJC9BA/ESnBOcT6xeYXGmjkZlAx4LNGkYVsZVGe+kO0eJkYQteftR6SRtsfdxsyLzcRft/weNMw3h2T8SvnW1G1XVfQIp/ILxinwYFLL6duhOtcxO4aPFUeckMO0WtVeKiDVtKdwQGxEQ== mdgk95@pm.me
+
+storage:
+
+  files:
+    - path: /etc/flatcar/update.conf
+      overwrite: true
+      mode: 0420
+      contents:
+        inline: |
+          REBOOT_STRATEGY=reboot
+          LOCKSMITHD_REBOOT_WINDOW_START="Thu 02:00"
+          LOCKSMITHD_REBOOT_WINDOW_LENGTH=1h
+
+    - path: /etc/ssh/sshd_config.d/custom.conf
+      overwrite: true
+      mode: 0600
+      contents:
+        inline: |
+          AllowUsers morgan
+          AuthenticationMethods publickey
+          PermitRootLogin no
+    
+    # Firewall rules to set on first boot.
+    # This replaces the ACCEPT ALL policy otherwise set
+    - path: /var/lib/iptables/rules-save
+      overwrite: true
+      mode: 0644
+      contents:
+        inline: |
+          *filter
+          -A INPUT -p tcp -m tcp --dport 22 -m comment --comment "Allow incoming SSH" -j ACCEPT
+          -A INPUT -p udp -m udp --dport 51820 -j ACCEPT
+          -A INPUT -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          -P INPUT DROP
+          -P FORWARD ACCEPT
+          -P OUTPUT ACCEPT
+          COMMIT
+
+    - path: /etc/systemd/network/wg0.key
+      overwrite: true
+      contents:
+        local: ./wireguard-keys/private
+
+    # Setup wireguard network interface
+    - path: /etc/systemd/network/00-wg0.netdev
+      contents:
+        inline: |
+          [NetDev]
+          Name=wg0
+          Kind=wireguard
+          Description=wg0 - wireguard tunnel
+          
+          [WireGuard]
+          ListenPort=51820
+          PrivateKeyFile=/etc/systemd/network/wg0.key
+          
+          [WireGuardPeer]
+          AllowedIPs=10.0.10.10/32
+          PublicKey=teuA3worAAIN4ljXjFtcLfM24kvaroYpj36I7Id9/30=
+          
+    # Route setup
+    - path: /etc/systemd/network/wg0.network
+      contents:
+        inline: |
+          [Match]
+          Name=wg0
+          
+          [Network]
+          Address=10.0.10.1/24
+
+    # Sudo
+    - path: /etc/userdb/morgan:sudo.membership
+      contents:
+        inline: " "
+    
+    # So I don't have to sudo for every Docker command
+    - path: /etc/userdb/morgan:docker.membership
+      contents:
+        inline: " "
+
+  links:
+    - path: /etc/systemd/system/multi-user.target.wants/docker.service
+      target: /usr/lib/systemd/system/docker.service
+      hard: false
+      overwrite: true
+
+    - target: /opt/extensions/docker-compose/docker-compose-2.38.2-x86-64.raw
+      path: /etc/extensions/docker-compose.raw
+      hard: false
+
+systemd:
+
+  units:
+    # Ensure docker starts automatically instead of being only socket-activated
+    - name: docker.service
+      enabled: true
+
+    - name: systemd-sysupdate.timer
+      enabled: true
+
+    - name: iptables-restore.service
+      enabled: true
+    
+    # Listen for SSH over VPN only
+    # Note: ListenStream is a list of values with each line adding to the list. An empty value clears the list, 
+    # which is why ListenStream= is necessary to prevent it from also listening on all interfacts on the default port 22.
+    # The FreeBind option is used to allow the socket to be bound on addresses that are not yet configured on an interface. This avoids 
+    # issues caused by delays in IP configuration at boot. (This option is required only if you are specifying an address.)
+    # 
+    # See https://www.flatcar.org/docs/latest/setup/security/customizing-sshd/#activating-changes
+    - name: sshd.socket
+      dropins:
+        - name: 10-sshd-listen.conf
+          contents: |
+            [Socket]
+            ListenStream=
+            ListenStream=10.0.10.1:22
+            ListenStream=::1
+            FreeBind=true
+            
+
+    # Enable autoupdates for docker composer sysext
+    - name: systemd-sysupdate.service
+      dropins:
+        - name: docker-compose.conf
+          contents: |
+            [Service]
+            ExecStartPre=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/docker-compose.raw > /tmp/docker-compose"
+            ExecStartPre=/usr/lib/systemd/systemd-sysupdate -C docker-compose update
+            ExecStartPost=/usr/bin/sh -c "readlink --canonicalize /etc/extensions/docker-compose.raw > /tmp/docker-compose-new"
+            ExecStartPost=/usr/bin/sh -c "if ! cmp --silent /tmp/docker-compose /tmp/docker-compose-new; then touch /run/reboot-required; fi"
