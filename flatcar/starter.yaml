@@ -88,6 +88,19 @@ storage:
       contents:
         inline: " "
 
+    - path: /opt/extensions/docker-compose/docker-compose-2.38.2-x86-64.raw
+      mode: 0644
+      contents:
+        source: https://extensions.flatcar.org/extensions/docker-compose-2.38.2-x86-64.raw
+
+    - path: /etc/sysupdate.docker-compose.d/docker-compose.conf
+      contents:
+        source: https://extensions.flatcar.org/extensions/docker-compose.conf
+
+    - path: /etc/sysupdate.d/noop.conf
+      contents:
+        source: https://extensions.flatcar.org/extensions/noop.conf
+
   links:
     - path: /etc/systemd/system/multi-user.target.wants/docker.service
       target: /usr/lib/systemd/system/docker.service
