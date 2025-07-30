@@ -78,7 +78,7 @@ services:
       FRESHRSS_INSTALL: |-
         --api-enabled
         --language en
-        --base-url ${BASE_URL:?}
+        --base-url ${BASE_URL}
         --title ${SITE_TITLE:-FreshRSS}
         --db-base ${POSTGRES_DB}:-freshrss}
         --db-host ${DB_HOST:-freshrss-db}
