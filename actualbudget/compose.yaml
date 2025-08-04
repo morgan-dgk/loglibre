@@ -9,7 +9,7 @@ networks:
 
 services:
   actual_server:
-    image: ghcr.io/actualbudget/actual:25.5.0
+    image: ghcr.io/actualbudget/actual:25.8.0
     ports: []
     volumes:
       - data:/data
