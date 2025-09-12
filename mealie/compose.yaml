@@ -4,8 +4,6 @@ volumes:
 
 networks:
   frontend:
-    external: true
-    name: ${EXTERNAL_NETWORK_ID:?}
   backend:
     internal: true
 
