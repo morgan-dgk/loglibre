@@ -12,8 +12,8 @@ networks:
 secrets:
   postgres_password:
     environment: "POSTGRES_PASSWORD"
-  open_api_key:
-    environment: "OPEN_API_KEY"
+  open_ai_key:
+    environment: "OPEN_AI_KEY"
 
 services:
 
@@ -48,6 +48,7 @@ services:
       POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
     secrets:
       - postgres_password
+      - open_ai_key
     depends_on:
       database:
         condition: service_healthy
