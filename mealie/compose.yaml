@@ -31,6 +31,8 @@ services:
     networks:
       - frontend
       - backend
+    ports:
+      - 9000:9000
     environment:
       # Set Backend ENV Variables Here
       ALLOW_SIGNUP: "false"
