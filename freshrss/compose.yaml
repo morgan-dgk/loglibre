@@ -92,6 +92,8 @@ services:
     networks:
       - frontend
       - backend
+    ports: 
+      - 8080:80
     volumes:
       - fresh_rss_data:/var/www/FreshRSS/data
       - fresh_rss_extensions:/var/www/FreshRSS/extensions
