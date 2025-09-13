@@ -7,8 +7,6 @@ volumes:
 
 networks:
   frontend:
-    name: "${EXTERNAL_NETWORK_ID:?}"
-    external: true
   backend:
     internal: true
 
@@ -67,7 +65,6 @@ services:
       - postgres_password
     environment:
       CRON_MIN: "*/20"
-      FRESHRSS_ENV: development
       # Uncomment below to enable logging of debug statements
       # FRESHRSS_ENV: development
       PUID: 1000
