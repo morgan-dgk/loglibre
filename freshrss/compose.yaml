@@ -89,6 +89,7 @@ services:
         --language en
         --password ${ADMIN_PASSWORD:?}
         --user ${FRESH_RSS_ADMIN_USER:-admin}
+    env_file: ./.env
     networks:
       - frontend
       - backend
